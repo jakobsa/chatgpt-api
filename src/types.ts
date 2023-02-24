@@ -15,10 +15,6 @@ export type SendMessageOptions = {
   queueWithCompletion?: string
 }
 
-export type SendMessageOptionsMQ = SendMessageOptions & {
-  queueWithCompletion?: string
-}
-
 export type MessageActionType = 'next' | 'variant'
 
 export type SendMessageBrowserOptions = {

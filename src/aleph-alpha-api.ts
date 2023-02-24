@@ -173,7 +173,7 @@ export class AlephAlphaAPI {
    */
   async sendMessage(
     text: string,
-    opts: types.SendMessageOptionsMQ = {}
+    opts: types.SendMessageOptions
   ): Promise<types.ChatMessage> {
     const {
       conversationId = uuidv4(),
@@ -318,7 +318,7 @@ export class AlephAlphaAPI {
 
   protected async _buildPrompt(
     message: string,
-    opts: types.SendMessageOptionsMQ
+    opts: types.SendMessageOptions
   ) {
     /*
       preamble example:
