@@ -5,11 +5,10 @@ import QuickLRU from "quick-lru";
 import { v4 as uuidv4 } from "uuid";
 
 // src/tokenizer.ts
-import GPT3TokenizerImport from "gpt3-tokenizer";
-var GPT3Tokenizer = typeof GPT3TokenizerImport === "function" ? GPT3TokenizerImport : GPT3TokenizerImport.default;
-var tokenizer = new GPT3Tokenizer({ type: "gpt3" });
+import { encoding_for_model } from "@dqbd/tiktoken";
+var tokenizer = encoding_for_model("text-davinci-003");
 function encode(input) {
-  return tokenizer.encode(input).bpe;
+  return tokenizer.encode(input);
 }
 
 // src/types.ts
@@ -340,7 +339,13 @@ async function fetchSSE(url, options, fetch2 = fetch) {
   const { onMessage, ...fetchOptions } = options;
   const res = await fetch2(url, fetchOptions);
   if (!res.ok) {
-    const msg = `ChatGPT error ${res.status || res.statusText}`;
+    let reason;
+    try {
+      reason = await res.text();
+    } catch (err) {
+      reason = res.statusText;
+    }
+    const msg = `ChatGPT error ${res.status}: ${reason}`;
     const error = new ChatGPTError(msg, { cause: res });
     error.statusCode = res.status;
     error.statusText = res.statusText;
@@ -716,6 +721,14 @@ ${parentMessage.text}${this._endToken}
 // src/chatgpt-unofficial-proxy-api.ts
 import pTimeout3 from "p-timeout";
 import { v4 as uuidv43 } from "uuid";
+
+// src/utils.ts
+var uuidv4Re = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function isValidUUIDv4(str) {
+  return str && uuidv4Re.test(str);
+}
+
+// src/chatgpt-unofficial-proxy-api.ts
 var ChatGPTUnofficialProxyAPI = class {
   /**
    * @param fetch - Optional override for the `fetch` implementation to use. Defaults to the global `fetch` function.
@@ -775,6 +788,26 @@ var ChatGPTUnofficialProxyAPI = class {
    * @returns The response from ChatGPT
    */
   async sendMessage(text, opts = {}) {
+    if (!!opts.conversationId !== !!opts.parentMessageId) {
+      throw new Error(
+        "ChatGPTUnofficialProxyAPI.sendMessage: conversationId and parentMessageId must both be set or both be undefined"
+      );
+    }
+    if (opts.conversationId && !isValidUUIDv4(opts.conversationId)) {
+      throw new Error(
+        "ChatGPTUnofficialProxyAPI.sendMessage: conversationId is not a valid v4 UUID"
+      );
+    }
+    if (opts.parentMessageId && !isValidUUIDv4(opts.parentMessageId)) {
+      throw new Error(
+        "ChatGPTUnofficialProxyAPI.sendMessage: parentMessageId is not a valid v4 UUID"
+      );
+    }
+    if (opts.messageId && !isValidUUIDv4(opts.messageId)) {
+      throw new Error(
+        "ChatGPTUnofficialProxyAPI.sendMessage: messageId is not a valid v4 UUID"
+      );
+    }
     const {
       conversationId,
       parentMessageId = uuidv43(),
